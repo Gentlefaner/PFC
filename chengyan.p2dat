@@ -1,0 +1,42 @@
+new
+set random 10001
+def par
+    rock_density=2620.0
+    rock_E=44e9
+    rock_fric=0.577
+    rock_kn_ks=2.5
+    
+    sample_width=0.048
+    sample_height=0.048
+    
+    joint_angle=20.0
+    joint_length=0.020
+    
+    poro=0.12
+    rmin=0.3e-3
+    rmax=0.4e-3
+end
+@par
+
+domain extent [-sample_width] [sample_width] ...
+                [-sample_height] [sample_height]
+
+wall generate id 1 box [-sample_width*0.5] [sample_width*0.5] ...
+                            [-sample_height*0.5] [sample_height*0.5] ...
+                            expand 1.5
+
+ball distribute porosity @poro radius @rmin @rmax ...
+                            range x [-sample_width*0.5] [sample_width*0.5] ...
+                            y [-sample_height*0.5] [sample_height*0.5]
+ball attribute density @rock_density damp 0.7
+cmat default model linear method deform emod @rock_E kratio @rock_kn_ks
+ball property fric @rock_fric
+cycle 2000 calm 50
+solve
+ball delete range x [-sample_width] [-sample_width*0.5]
+ball delete range x [sample_width*0.5] [sample_width]
+ball delete range y [-sample_height] [-sample_height*0.5]
+ball delete range y [sample_height*0.5] [sample_height]
+cycle 1
+solve
+save sample

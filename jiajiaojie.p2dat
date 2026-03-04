@@ -1,0 +1,24 @@
+restore yuya
+
+def par_pb
+    
+    pb_ten=80e6
+    pb_coh=120e6
+    pb_fa=35.0
+end
+@par_pb
+
+
+cmat add 1 model linearpbond method deform emod @rock_E kratio @rock_kn_ks ...
+                    pb_deform emod @rock_E kratio @rock_kn_ks ...
+                    property pb_coh @pb_coh pb_ten @pb_ten pb_fa @pb_fa fric @rock_fric ...
+                    range contact type ball-ball
+cmat apply
+cycle 1
+solve
+contact method bond gap 0.0 range contact type ball-ball
+
+cycle 2000 calm 50
+solve
+
+save jiajiaojie

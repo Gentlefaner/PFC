@@ -1,0 +1,80 @@
+restore sample
+
+
+[txx=1e6]
+[tyy=1e6]
+def wall_ini
+    wallup=wall.find(3)
+    walldown=wall.find(1)
+    wallleft=wall.find(4)
+    wallright=wall.find(2)
+end
+@wall_ini
+
+def calculate_length
+    wlx=wall.pos.x(wallright)-wall.pos.x(wallleft)
+    wly=wall.pos.y(wallup)-wall.pos.y(walldown)
+end
+
+def calculate_stress
+    calculate_length
+    wyss=0.5*((wall.force.contact.y(walldown)-wall.force.contact.y(wallup))/wlx)
+    wxss=0.5*((wall.force.contact.x(wallleft)-wall.force.contact.x(wallright))/wly)
+end
+
+[servo_factor=0.8]
+def get_g
+    zongKNy=2e8
+    loop foreach ct wall.contactmap(wallup)
+    zongKNy+=contact.prop(ct,"kn")
+    endloop    
+    loop foreach ct wall.contactmap(walldown)
+    zongKNy+=contact.prop(ct,"kn")
+    endloop
+    
+    zongKNx=2e8
+    loop foreach ct wall.contactmap(wallleft)
+    zongKNx+=contact.prop(ct,"kn")
+    endloop
+    loop foreach ct wall.contactmap(wallright)
+    zongKNx+=contact.prop(ct,"kn")
+    endloop
+    
+    gx=1.0*servo_factor*wly/(zongKNx*global.timestep)
+    gy=1.0*servo_factor*wlx/(zongKNy*global.timestep)
+end
+
+[servo_freq=100]
+[time_record=global.step-1]
+def servo_walls
+    calculate_stress
+    if global.step>time_record then
+        get_g
+        time_record=global.step+servo_freq
+    endif
+    
+    yvel=gy*math.abs(math.abs(wyss)-tyy)
+    if math.abs(wyss)<tyy then
+        wall.vel.y(wallup)=-yvel
+        wall.vel.y(walldown)=yvel
+    else
+        wall.vel.y(wallup)=yvel
+        wall.vel.y(walldown)=-yvel
+    endif
+    
+    xvel=gx*math.abs(math.abs(wxss)-txx)
+    if math.abs(wxss)<txx then
+        wall.vel.x(wallright)=-xvel
+        wall.vel.x(wallleft)=xvel
+    else
+        wall.vel.x(wallright)=xvel
+        wall.vel.x(wallleft)=-xvel
+    endif
+end
+
+set fish callback -1.0 @servo_walls
+history id 1 @wxss
+history id 2 @wyss
+cycle 10
+solve
+save yuya
